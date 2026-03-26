@@ -1,0 +1,16 @@
+{
+    "manifest_version": 3,
+    "name": "LocalStorage Inspector",
+    "version": "1.0.0",
+    "description": "A powerful localStorage viewer & editor for developers. View JSON as expandable trees, edit nested objects with ease, and import/export data for quick testing.",
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "devtools_page": "devtools.html",
+    "permissions": [
+        "storage"
+    ],
+    "minimum_chrome_version": "105"
+}
