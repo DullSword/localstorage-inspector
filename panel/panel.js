@@ -7,12 +7,12 @@
     'use strict';
     const THEME_STORAGE_KEY = 'lsinspector_theme';
     const LIVE_ENABLED_STORAGE_KEY = 'lsinspector_live_enabled';
+    const LANGUAGE_STORAGE_KEY = 'lsinspector_lang';
 
     // ============================================
     // DOM References - DOM 引用
     // ============================================
     const $ = (sel) => document.querySelector(sel);
-    const $$ = (sel) => document.querySelectorAll(sel);
 
     const searchInput = $('#searchInput');
     const clearSearch = $('#clearSearch');
@@ -21,6 +21,7 @@
     const emptyState = $('#emptyState');
     const noResultsState = $('#noResultsState');
     const searchBox = searchInput.parentElement;
+    const btnLangToggle = $('#btnLangToggle');
     const btnThemeToggle = $('#btnThemeToggle');
 
     // Modal elements - 模态框元素
@@ -42,7 +43,6 @@
     const importConfirm = $('#importConfirm');
     const importCancel = $('#importCancel');
     const importModalClose = $('#importModalClose');
-    const btnSelectFile = $('#btnSelectFile');
 
     // Confirm dialog - 确认对话框
     const confirmOverlay = $('#confirmOverlay');
@@ -65,6 +65,167 @@
     let lastDataHash = ''; // for detecting changes - 用于检测数据变化
     let isLiveEnabled = true; // live monitoring toggle - 实时监控开关
     let currentTheme = 'dark'; // theme toggle - 主题切换
+    let activeLocale = 'en';
+    let localeMessages = null;
+
+    function isSupportedLocale(locale) {
+        return locale === 'en' || locale === 'zh_CN';
+    }
+
+    function formatMessage(message, substitutions) {
+        if (!message) {
+            return '';
+        }
+        if (typeof substitutions === 'undefined') {
+            return message;
+        }
+        const values = Array.isArray(substitutions) ? substitutions : [substitutions];
+        return message.replace(/\$(\d+)/g, (full, indexText) => {
+            const index = Number(indexText) - 1;
+            return index >= 0 && index < values.length ? String(values[index]) : full;
+        });
+    }
+
+    function getMessageFromLocaleMap(key, substitutions) {
+        if (!localeMessages || !localeMessages[key] || typeof localeMessages[key].message !== 'string') {
+            return '';
+        }
+        return formatMessage(localeMessages[key].message, substitutions);
+    }
+
+    async function loadLocaleMessages(locale) {
+        const normalizedLocale = isSupportedLocale(locale) ? locale : 'en';
+        try {
+            const url = chrome.runtime.getURL(`_locales/${normalizedLocale}/messages.json`);
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            localeMessages = await response.json();
+            activeLocale = normalizedLocale;
+            return true;
+        } catch (e) {
+            console.warn('Failed to load locale messages:', normalizedLocale, e);
+            localeMessages = null;
+            return false;
+        }
+    }
+
+    function setDocumentLanguageFromLocale(locale) {
+        document.documentElement.lang = locale === 'zh_CN' ? 'zh-CN' : 'en';
+    }
+
+    function getSavedLocalePreference() {
+        try {
+            const savedLocale = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+            if (isSupportedLocale(savedLocale)) {
+                return savedLocale;
+            }
+        } catch (e) { }
+        return null;
+    }
+
+    function t(key, substitutions, fallback = '') {
+        const mappedMessage = getMessageFromLocaleMap(key, substitutions);
+        if (mappedMessage) {
+            return mappedMessage;
+        }
+
+        const message = chrome.i18n && chrome.i18n.getMessage
+            ? chrome.i18n.getMessage(key, substitutions)
+            : '';
+        if (message) {
+            return message;
+        }
+        return fallback || key;
+    }
+
+    function applyI18n(root = document) {
+        root.querySelectorAll('[data-i18n]').forEach((el) => {
+            el.textContent = t(el.dataset.i18n, undefined, el.textContent || '');
+        });
+        root.querySelectorAll('[data-i18n-title]').forEach((el) => {
+            el.title = t(el.dataset.i18nTitle, undefined, el.title || '');
+        });
+        root.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+            el.placeholder = t(el.dataset.i18nPlaceholder, undefined, el.placeholder || '');
+        });
+        root.querySelectorAll('[data-i18n-aria-label]').forEach((el) => {
+            el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel, undefined, el.getAttribute('aria-label') || ''));
+        });
+    }
+
+    function updateModalTitleByState() {
+        if (modalOverlay.style.display === 'none') {
+            return;
+        }
+        modalTitle.textContent = editingKey === null ? t('modal_add_title') : t('modal_edit_title');
+    }
+
+    function updateLanguageToggleButton() {
+        if (!btnLangToggle) {
+            return;
+        }
+
+        const textEl = btnLangToggle.querySelector('.lang-text');
+        if (activeLocale === 'zh_CN') {
+            if (textEl) {
+                textEl.textContent = t('lang_toggle_label_en');
+            }
+            btnLangToggle.title = t('lang_toggle_title_switch_to_en');
+        } else {
+            if (textEl) {
+                textEl.textContent = t('lang_toggle_label_zh');
+            }
+            btnLangToggle.title = t('lang_toggle_title_switch_to_zh');
+        }
+    }
+
+    function applyLocalizedUI() {
+        applyI18n();
+        updateModalTitleByState();
+        renderImportDropZoneDefault();
+        bindImportSelectFileButton();
+        updateLanguageToggleButton();
+        updateThemeToggleButton();
+        updateLiveToggleButton();
+        applyFilter();
+    }
+
+    async function setPanelLocale(locale, persist = true) {
+        const normalizedLocale = isSupportedLocale(locale) ? locale : 'en';
+        if (normalizedLocale !== activeLocale || !localeMessages) {
+            await loadLocaleMessages(normalizedLocale);
+        }
+
+        setDocumentLanguageFromLocale(activeLocale);
+        if (persist) {
+            try {
+                localStorage.setItem(LANGUAGE_STORAGE_KEY, activeLocale);
+            } catch (e) { }
+        }
+
+        applyLocalizedUI();
+    }
+
+    async function toggleLanguage() {
+        const nextLocale = activeLocale === 'zh_CN' ? 'en' : 'zh_CN';
+        await setPanelLocale(nextLocale, true);
+    }
+
+    function bindImportSelectFileButton() {
+        const selectFileButton = document.getElementById('btnSelectFile');
+        if (!selectFileButton) {
+            return;
+        }
+        selectFileButton.addEventListener('click', () => importFileInput.click());
+    }
+
+    function renderImportDropZoneDefault() {
+        importDropZone.querySelector('p').innerHTML =
+            `${escapeHtml(t('import_drop_zone_drag_here'))}<br>${escapeHtml(t('common_or'))} ` +
+            `<button class="btn-link" id="btnSelectFile">${escapeHtml(t('import_select_file'))}</button>`;
+    }
 
     // Direct editing state - 直接编辑状态
     function createEmptyEditingState() {
@@ -126,7 +287,7 @@
         } catch (e) {
             console.error('Failed to load localStorage:', e);
             if (!silent) {
-                showToast('无法读取 localStorage', 'error');
+                showToast(t('toast_load_failed'), 'error');
             }
             return false;
         }
@@ -151,7 +312,7 @@
             return true;
         } catch (e) {
             console.error('Failed to set localStorage item:', e);
-            showToast('保存失败: ' + e.message, 'error');
+            showToast(t('toast_save_failed', e.message), 'error');
             return false;
         }
     }
@@ -163,7 +324,7 @@
             return true;
         } catch (e) {
             console.error('Failed to remove localStorage item:', e);
-            showToast('删除失败: ' + e.message, 'error');
+            showToast(t('toast_remove_failed', e.message), 'error');
             return false;
         }
     }
@@ -174,7 +335,7 @@
             return true;
         } catch (e) {
             console.error('Failed to clear localStorage:', e);
-            showToast('清空失败: ' + e.message, 'error');
+            showToast(t('toast_clear_failed', e.message), 'error');
             return false;
         }
     }
@@ -268,21 +429,21 @@
         // Copy button - 复制按钮
         const btnCopy = createActionButton(
             '<svg viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M3 10.5V3a1.5 1.5 0 0 1 1.5-1.5H11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
-            '复制值',
+            t('action_copy_value'),
             () => copyToClipboard(entry.value)
         );
 
         // Edit button - 编辑按钮
         const btnEdit = createActionButton(
             '<svg viewBox="0 0 16 16" fill="none"><path d="M11.5 1.5l3 3L5 14H2v-3L11.5 1.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
-            '编辑',
+            t('action_edit'),
             () => openEditModal(entry.key, entry.value)
         );
 
         // Delete button - 删除按钮
         const btnDelete = createActionButton(
             '<svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5.33 4V2.67a1.33 1.33 0 0 1 1.34-1.34h2.66a1.33 1.33 0 0 1 1.34 1.34V4m2 0v9.33a1.33 1.33 0 0 1-1.34 1.34H4.67a1.33 1.33 0 0 1-1.34-1.34V4h9.34Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-            '删除',
+            t('action_delete'),
             () => deleteEntry(entry.key)
         );
         btnDelete.classList.add('btn-delete');
@@ -401,714 +562,6 @@
         } catch (e) {
             // Not valid JSON, skip formatting - 不是有效的 JSON，跳过格式化
         }
-    }
-
-    // ============================================
-    // Value Rendering (JSON Tree) - 值渲染 (JSON 树)
-    // ============================================
-    function renderValue(rawValue) {
-        // Try to parse as JSON - 尝试解析为 JSON
-        let parsed;
-        let isJson = false;
-        try {
-            parsed = JSON.parse(rawValue);
-            if (typeof parsed === 'object' && parsed !== null) {
-                isJson = true;
-            }
-        } catch (e) {
-            // Not JSON - 不是 JSON
-        }
-
-        if (isJson) {
-            return renderJsonTree(parsed);
-        }
-
-        // Simple value - 简单值
-        const span = document.createElement('span');
-        span.className = 'value-simple';
-        // Add editing metadata to dataset - 添加编辑信息到 dataset
-        span.dataset.editKind = 'top-value';
-        span.dataset.storageKey = null; // Will be set in createEntryRow - 将在 createEntryRow 中设置
-        // Add editing metadata to dataset - 添加编辑信息到 dataset
-        span.dataset.editKind = 'top-value';
-        span.dataset.storageKey = null; // Will be set in createEntryRow - 将在 createEntryRow 中设置
-
-        if (rawValue === 'true' || rawValue === 'false') {
-            span.classList.add('json-boolean');
-            const displayValue = rawValue;
-            if (currentSearchTerm) {
-                span.innerHTML = highlightText(displayValue, currentSearchTerm);
-            } else {
-                span.textContent = displayValue;
-            }
-        } else if (rawValue === 'null') {
-            span.classList.add('json-null');
-            const displayValue = 'null';
-            if (currentSearchTerm) {
-                span.innerHTML = highlightText(displayValue, currentSearchTerm);
-            } else {
-                span.textContent = displayValue;
-            }
-        } else if (!isNaN(rawValue) && rawValue.trim() !== '') {
-            span.classList.add('json-number');
-            const displayValue = rawValue;
-            if (currentSearchTerm) {
-                span.innerHTML = highlightText(displayValue, currentSearchTerm);
-            } else {
-                span.textContent = displayValue;
-            }
-        } else {
-            span.classList.add('json-string');
-            const displayValue = rawValue.length > 500 ? rawValue.substring(0, 500) + '...' : rawValue;
-            if (currentSearchTerm) {
-                span.innerHTML = '"' + highlightText(displayValue, currentSearchTerm) + '"';
-            } else {
-                span.textContent = '"' + displayValue + '"';
-            }
-        }
-
-        return span;
-    }
-
-    function renderJsonTree(data, depth = 0) {
-        const container = document.createElement('div');
-        container.className = 'json-tree';
-
-        const tree = buildJsonNode(data, depth, null, true);
-        container.appendChild(tree);
-        return container;
-    }
-
-    function buildJsonNode(value, depth, key, isLast) {
-        if (value === null) {
-            return buildPrimitive('null', 'json-null', key, isLast);
-        }
-
-        const type = typeof value;
-
-        if (type === 'string') {
-            return buildPrimitive('"' + escapeHtml(value) + '"', 'json-string', key, isLast);
-        }
-        if (type === 'number') {
-            return buildPrimitive(String(value), 'json-number', key, isLast);
-        }
-        if (type === 'boolean') {
-            return buildPrimitive(String(value), 'json-boolean', key, isLast);
-        }
-
-        if (Array.isArray(value)) {
-            return buildComposite(value, key, isLast, depth, true);
-        }
-        if (type === 'object') {
-            return buildComposite(value, key, isLast, depth, false);
-        }
-
-        return buildPrimitive(String(value), 'json-string', key, isLast);
-    }
-
-    function buildPrimitive(displayValue, className, key, isLast, depth) {
-        const line = document.createElement('div');
-        line.className = 'json-line';
-
-        if (key !== null) {
-            const keySpan = document.createElement('span');
-            keySpan.className = 'json-key';
-            const keyText = '"' + key + '"';
-            if (currentSearchTerm) {
-                keySpan.innerHTML = highlightText(keyText, currentSearchTerm);
-            } else {
-                keySpan.textContent = keyText;
-            }
-            const colon = document.createElement('span');
-            colon.className = 'json-colon';
-            colon.textContent = ':';
-            line.append(keySpan, colon);
-        }
-
-        const valueSpan = document.createElement('span');
-        valueSpan.className = className;
-        if (currentSearchTerm) {
-            valueSpan.innerHTML = highlightText(displayValue, currentSearchTerm);
-        } else {
-            valueSpan.textContent = displayValue;
-        }
-
-        // Add editing metadata - 添加编辑信息
-        if (key !== null) {
-            // Nested key supports rename editing - 嵌套 key，支持重命名编辑
-            valueSpan.dataset.editKind = 'nested-key';
-            valueSpan.dataset.keyName = key;
-            valueSpan.dataset.parentPath = depth > 0 ? buildPathString(key, depth) : '';
-        } else if (Array.isArray(value)) {
-            // Array element supports value editing - 数组元素，支持值编辑
-            valueSpan.dataset.editKind = 'nested-value';
-            valueSpan.dataset.parentPath = buildPathString(key || String(entries.findIndex(([k]) => k === key)), depth);
-        } else {
-            // Top-level value supports value editing - 顶层值，支持值编辑
-            valueSpan.dataset.editKind = 'top-value';
-            valueSpan.dataset.parentPath = '';
-        }
-        line.appendChild(valueSpan);
-
-        if (!isLast) {
-            const comma = document.createElement('span');
-            comma.className = 'json-comma';
-            comma.textContent = ',';
-            line.appendChild(comma);
-        }
-
-        return line;
-    }
-
-    function buildComposite(value, key, isLast, depth, isArray) {
-        const entries = isArray ? value : Object.entries(value);
-        const count = isArray ? value.length : entries.length;
-        const openBracket = isArray ? '[' : '{';
-        const closeBracket = isArray ? ']' : '}';
-
-        const node = document.createElement('div');
-        node.className = 'json-node';
-
-        // First line with toggle + opening bracket - 带折叠按钮和左括号的第一行
-        const firstLine = document.createElement('div');
-        firstLine.className = 'json-line';
-
-        // Toggle arrow - 折叠箭头
-        const toggle = document.createElement('span');
-        toggle.className = 'json-toggle';
-        toggle.innerHTML = '<svg viewBox="0 0 10 10"><path d="M3 2l4 3-4 3z" fill="currentColor"/></svg>';
-        firstLine.appendChild(toggle);
-
-        if (key !== null) {
-            const keySpan = document.createElement('span');
-            keySpan.className = 'json-key';
-            const keyText = '"' + key + '"';
-            if (currentSearchTerm) {
-                keySpan.innerHTML = highlightText(keyText, currentSearchTerm);
-            } else {
-                keySpan.textContent = keyText;
-            }
-            const colon = document.createElement('span');
-            colon.className = 'json-colon';
-            colon.textContent = ':';
-            firstLine.append(keySpan, colon);
-        }
-
-        const openSpan = document.createElement('span');
-        openSpan.className = 'json-bracket';
-        openSpan.textContent = openBracket;
-        firstLine.appendChild(openSpan);
-
-        // Ellipsis (shown when collapsed) - 省略号 (折叠时显示)
-        const ellipsis = document.createElement('span');
-        ellipsis.className = 'json-ellipsis';
-        const summaryText = count === 0 ? '' : ` ... ${count} ${isArray ? '项' : '个属性'} `;
-        if (currentSearchTerm) {
-            ellipsis.innerHTML = highlightText(summaryText, currentSearchTerm);
-        } else {
-            ellipsis.textContent = summaryText;
-        }
-        firstLine.appendChild(ellipsis);
-
-        // Inline closing bracket (shown when collapsed) - 内联右括号 (折叠时显示)
-        const inlineClose = document.createElement('span');
-        inlineClose.className = 'json-bracket json-ellipsis';
-        inlineClose.textContent = closeBracket;
-        firstLine.appendChild(inlineClose);
-
-        if (!isLast) {
-            const commaCollapsed = document.createElement('span');
-            commaCollapsed.className = 'json-comma json-ellipsis';
-            commaCollapsed.textContent = ',';
-            firstLine.appendChild(commaCollapsed);
-        }
-
-        node.appendChild(firstLine);
-
-        // Children - 子元素
-        const children = document.createElement('div');
-        children.className = 'json-children';
-
-        if (isArray) {
-            for (let i = 0; i < value.length; i++) {
-                children.appendChild(buildJsonNode(value[i], depth + 1, null, i === value.length - 1));
-            }
-        } else {
-            for (let i = 0; i < entries.length; i++) {
-                const [k, v] = entries[i];
-                children.appendChild(buildJsonNode(v, depth + 1, k, i === entries.length - 1));
-            }
-        }
-
-        node.appendChild(children);
-
-        // Closing bracket - 右括号
-        const closing = document.createElement('div');
-        closing.className = 'json-closing';
-        const closeSpan = document.createElement('span');
-        closeSpan.className = 'json-bracket';
-        closeSpan.textContent = closeBracket;
-        closing.appendChild(closeSpan);
-
-        if (!isLast) {
-            const comma = document.createElement('span');
-            comma.className = 'json-comma';
-            comma.textContent = ',';
-            closing.appendChild(comma);
-        }
-        node.appendChild(closing);
-
-        // Toggle click handler - 折叠点击处理
-        toggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            node.classList.toggle('is-collapsed');
-            toggle.classList.toggle('collapsed');
-        });
-
-        // Auto-collapse deep nesting (depth > 3) - 自动折叠深层嵌套 (深度 > 3)
-        if (depth > 3) {
-            node.classList.add('is-collapsed');
-            toggle.classList.add('collapsed');
-        }
-
-        return node;
-    }
-
-    // ============================================
-    // Direct Editing Functions - 直接编辑功能
-    // ============================================
-
-    function startDirectKeyEdit(row, cell, currentKey) {
-        if (currentEditing.isEditing) {
-            // If this key is already being edited and unchanged, exit edit mode directly - 如果是当前正在编辑的 key，且没有修改，则直接退出编辑状态
-            if (currentEditing.entryKey === currentKey) {
-                cancelDirectEdit();
-                return;
-            }
-            // Otherwise, safely cancel current edit first - 否则，先安全地取消当前编辑
-            safeCancelCurrentEdit();
-
-            // Add a delay to ensure DOM updates are complete - 添加一个延迟以确保 DOM 更新完成
-            setTimeout(() => {
-                createAndStartKeyEdit(row, cell, currentKey);
-            }, 10);
-            return;
-        }
-
-        // If there is no active edit, start a new edit directly - 如果没有编辑状态，直接开始新的编辑
-        createAndStartKeyEdit(row, cell, currentKey);
-    }
-
-    function createAndStartKeyEdit(row, cell, currentKey) {
-        const newKeyInput = createEditInput(currentKey, 'key');
-        cell.innerHTML = '';
-        cell.appendChild(newKeyInput);
-        newKeyInput.focus();
-        newKeyInput.select();
-
-        // Reset the editing state object - 重置编辑状态对象
-        currentEditing = {
-            isEditing: true,
-            row: row,
-            cell: cell,
-            entryKey: currentKey,
-            entryValue: allEntries.find(e => e.key === currentKey)?.value || '',
-            isKeyEdit: true,
-            valuePath: [],
-            editingElement: newKeyInput,
-            originalValue: currentKey
-        };
-
-        // Add save/cancel handlers - 添加保存/取消处理
-        const blurHandler = (e) => {
-            // Use setTimeout to finish the event loop and avoid save when canceling a new edit - 使用 setTimeout 确保事件循环完成，避免在取消新编辑时触发保存
-            setTimeout(() => {
-                if (currentEditing.isEditing && currentEditing.editingElement === newKeyInput) {
-                    saveDirectEdit();
-                }
-            }, 0);
-        };
-        const keydownHandler = (e) => {
-            if (e.key === 'Enter') {
-                saveDirectEdit();
-            } else if (e.key === 'Escape') {
-                cancelDirectEdit();
-            }
-        };
-
-        newKeyInput.addEventListener('blur', blurHandler);
-        newKeyInput.addEventListener('keydown', keydownHandler);
-    }
-
-    function startDirectValueEdit(row, cell, key, value, event) {
-        if (currentEditing.isEditing) {
-            // Safely cancel current edit first without triggering blur - 先安全地取消当前编辑，不触发 blur 事件
-            safeCancelCurrentEdit();
-
-            // Add a delay to ensure DOM updates are complete - 添加一个延迟以确保 DOM 更新完成
-            setTimeout(() => {
-                createAndStartValueEdit(row, cell, key, value, event);
-            }, 10);
-            return;
-        }
-
-        // If there is no active edit, start a new edit directly - 如果没有编辑状态，直接开始新的编辑
-        createAndStartValueEdit(row, cell, key, value, event);
-    }
-
-    function createAndStartValueEdit(row, cell, key, value, event) {
-        const target = event.target;
-        const valuePath = parseValuePath(target);
-
-        try {
-            const parsedValue = JSON.parse(value);
-            const newValue = getValueAtPath(parsedValue, valuePath);
-            const displayValue = displayValueForEdit(newValue);
-
-            const valueInput = createEditInput(displayValue, 'value');
-
-            // Replace the clicked element with input - 用输入框替换被点击元素
-            if (target.closest('.json-line')) {
-                const line = target.closest('.json-line');
-                const valueSpan = line.querySelector('.json-string, .json-number, .json-boolean, .json-null');
-                if (valueSpan) {
-                    valueSpan.innerHTML = '';
-                    valueSpan.appendChild(valueInput);
-                } else {
-                    line.appendChild(valueInput);
-                }
-            } else {
-                // For simple values or JSON tree nodes - 适用于简单值或 JSON 树节点
-                const elementToReplace = target.closest('.value-simple, .json-node, .json-line');
-                if (elementToReplace) {
-                    elementToReplace.innerHTML = '';
-                    elementToReplace.appendChild(valueInput);
-                }
-            }
-
-            valueInput.focus();
-            if (typeof newValue === 'string') {
-                // Select text content for strings, not quotes - 字符串仅选中文本内容，不包含引号
-                valueInput.setSelectionRange(1, valueInput.value.length - 1);
-            } else {
-                valueInput.select();
-            }
-
-            // Reset the editing state object - 重置编辑状态对象
-            currentEditing = {
-                isEditing: true,
-                row: row,
-                cell: cell,
-                entryKey: key,
-                entryValue: value,
-                isKeyEdit: false,
-                valuePath: valuePath,
-                editingElement: valueInput,
-                originalValue: newValue
-            };
-
-            // Add save/cancel handlers - 添加保存/取消处理
-            const blurHandler = (e) => {
-                // Use setTimeout to finish the event loop and avoid save when canceling a new edit - 使用 setTimeout 确保事件循环完成，避免在取消新编辑时触发保存
-                setTimeout(() => {
-                    if (currentEditing.isEditing && currentEditing.editingElement === valueInput) {
-                        saveDirectEdit();
-                    }
-                }, 0);
-            };
-            const keydownHandler = (e) => {
-                if (e.key === 'Enter') {
-                    saveDirectEdit();
-                } else if (e.key === 'Escape') {
-                    cancelDirectEdit();
-                }
-            };
-
-            valueInput.addEventListener('blur', blurHandler);
-            valueInput.addEventListener('keydown', keydownHandler);
-
-        } catch (e) {
-            // Fallback for simple values that can't be parsed as JSON - 无法解析为 JSON 的简单值回退处理
-            const displayValue = value.replace(/^"|"$/g, ''); // Remove quotes from string display - 移除字符串显示中的引号
-            const valueInput = createEditInput(displayValue, 'value');
-
-            if (target.closest('.value-simple')) {
-                const parent = target.closest('.value-simple');
-                parent.innerHTML = '';
-                parent.appendChild(valueInput);
-            }
-
-            valueInput.focus();
-            valueInput.select();
-
-            // Reset the editing state object - 重置编辑状态对象
-            currentEditing = {
-                isEditing: true,
-                row: row,
-                cell: cell,
-                entryKey: key,
-                entryValue: value,
-                isKeyEdit: false,
-                valuePath: [],
-                editingElement: valueInput,
-                originalValue: value
-            };
-
-            // Add save/cancel handlers - 添加保存/取消处理
-            const blurHandler = (e) => {
-                // Use setTimeout to finish the event loop and avoid save when canceling a new edit - 使用 setTimeout 确保事件循环完成，避免在取消新编辑时触发保存
-                setTimeout(() => {
-                    if (currentEditing.isEditing && currentEditing.editingElement === valueInput) {
-                        saveDirectEdit();
-                    }
-                }, 0);
-            };
-            const keydownHandler = (e) => {
-                if (e.key === 'Enter') {
-                    saveDirectEdit();
-                } else if (e.key === 'Escape') {
-                    cancelDirectEdit();
-                }
-            };
-
-            valueInput.addEventListener('blur', blurHandler);
-            valueInput.addEventListener('keydown', keydownHandler);
-        }
-    }
-
-    function parseValuePath(element) {
-        const path = [];
-
-        // Navigate up the DOM to find the path - 向上遍历 DOM 查找路径
-        let current = element;
-        while (current && current !== document.body) {
-            if (current.classList.contains('json-line')) {
-                const keySpan = current.querySelector('.json-key');
-                const indexMatch = current.querySelector('[data-index]');
-
-                if (keySpan && keySpan.textContent) {
-                    const key = keySpan.textContent.replace(/^"|"$/g, ''); // Remove quotes - 移除引号
-                    path.unshift(key);
-                } else if (indexMatch) {
-                    path.unshift(parseInt(indexMatch.dataset.index));
-                }
-            }
-            current = current.parentElement;
-        }
-
-        return path;
-    }
-
-    function getValueAtPath(obj, path) {
-        let current = obj;
-        for (const key of path) {
-            current = current[key];
-        }
-        return current;
-    }
-
-    function setValueAtPath(obj, path, value) {
-        let current = obj;
-        for (let i = 0; i < path.length - 1; i++) {
-            current = current[path[i]];
-        }
-        current[path[path.length - 1]] = value;
-    }
-
-    function displayValueForEdit(value) {
-        if (typeof value === 'string') {
-            return value;
-        } else if (value === null) {
-            return 'null';
-        } else if (typeof value === 'boolean') {
-            return value.toString();
-        } else if (typeof value === 'number') {
-            return value.toString();
-        } else {
-            return JSON.stringify(value, null, 2);
-        }
-    }
-
-    async function saveDirectEdit() {
-        if (!currentEditing.isEditing) return;
-
-        const newValue = currentEditing.editingElement.value.trim();
-
-        if (currentEditing.isKeyEdit) {
-            // Edit key - 编辑键名
-            if (!newValue) {
-                showToast('Key 不能为空', 'warning');
-                currentEditing.isEditing = false;
-                // Restore original state without saving - 不保存并恢复原始状态
-                const row = currentEditing.row;
-                const entry = allEntries.find(e => e.key === currentEditing.entryKey);
-                if (entry) {
-                    const newRow = createEntryRow(entry);
-                    row.parentNode.replaceChild(newRow, row);
-                }
-                return;
-            }
-
-            // Check if new key already exists (except for current key) - 检查新键是否已存在（排除当前键）
-            const exists = allEntries.find(e => e.key === newValue && e.key !== currentEditing.entryKey);
-            if (exists) {
-                showToast('Key 已存在', 'warning');
-                currentEditing.isEditing = false;
-                // Restore original state without saving - 不保存并恢复原始状态
-                const row = currentEditing.row;
-                const entry = allEntries.find(e => e.key === currentEditing.entryKey);
-                if (entry) {
-                    const newRow = createEntryRow(entry);
-                    row.parentNode.replaceChild(newRow, row);
-                }
-                return;
-            }
-
-            // Save new key (only if actually changed) - 保存新键（仅在确实变更时）
-            if (newValue !== currentEditing.entryKey) {
-                const oldValue = currentEditing.entryValue;
-                const success = await setLocalStorageItem(newValue, oldValue);
-
-                if (success) {
-                    // Remove old key - 移除旧键
-                    await removeLocalStorageItem(currentEditing.entryKey);
-                    showToast('Key 已更新', 'success');
-                    lastDataHash = '';
-                    await loadLocalStorage(true);
-                }
-            } else {
-                // Key didn't actually change, restore original display state - 键名实际未变化，恢复原始显示状态
-                const row = currentEditing.row;
-                const entry = allEntries.find(e => e.key === currentEditing.entryKey);
-                if (entry) {
-                    const newRow = createEntryRow(entry);
-                    row.parentNode.replaceChild(newRow, row);
-                }
-                currentEditing.isEditing = false;
-                showToast('Key 未修改', 'info');
-            }
-        } else {
-            // Edit value - 编辑值
-            if (!newValue) {
-                showToast('Value 不能为空', 'warning');
-                currentEditing.isEditing = false;
-                // Restore original state without saving - 不保存并恢复原始状态
-                const row = currentEditing.row;
-                const entry = allEntries.find(e => e.key === currentEditing.entryKey);
-                if (entry) {
-                    const newRow = createEntryRow(entry);
-                    row.parentNode.replaceChild(newRow, row);
-                }
-                return;
-            }
-
-            let finalValue = newValue;
-
-            try {
-                // Try to parse as JSON if it looks like JSON - 若看起来像 JSON 则尝试解析
-                if (newValue.startsWith('{') || newValue.startsWith('[') ||
-                    (newValue.startsWith('"') && newValue.endsWith('"')) ||
-                    newValue === 'null' || newValue === 'true' || newValue === 'false' ||
-                    !isNaN(newValue)) {
-                    finalValue = JSON.parse(newValue);
-                }
-            } catch (e) {
-                // Keep as string if not valid JSON - 若不是有效 JSON 则保持字符串
-            }
-
-            const success = await setLocalStorageItem(currentEditing.entryKey, finalValue);
-
-            if (success) {
-                // If value did not actually change, restore original display state - 如果值没有实际改变，恢复原始显示状态
-                if (finalValue === currentEditing.originalValue) {
-                    const row = currentEditing.row;
-                    const entry = allEntries.find(e => e.key === currentEditing.entryKey);
-                    if (entry) {
-                        const newRow = createEntryRow(entry);
-                        row.parentNode.replaceChild(newRow, row);
-                    }
-                    showToast('Value 未修改', 'info');
-                } else {
-                    showToast('Value 已更新', 'success');
-                    lastDataHash = '';
-                    await loadLocalStorage(true);
-                }
-            }
-        }
-
-        currentEditing.isEditing = false;
-    }
-
-    function safeCancelCurrentEdit() {
-        if (!currentEditing.isEditing) return;
-
-        // Save current editing state info - 保存当前编辑状态信息
-        const currentRow = currentEditing.row;
-        const currentEntryKey = currentEditing.entryKey;
-
-        // Re-render current row directly; this clears all inputs and event listeners - 直接重新渲染当前行，这会自动清理所有输入框和事件监听器
-        const entry = allEntries.find(e => e.key === currentEntryKey);
-        if (entry && currentRow) {
-            const newRow = createEntryRow(entry);
-            currentRow.parentNode.replaceChild(newRow, currentRow);
-        }
-
-        // Reset the editing state object - 重置编辑状态对象
-        currentEditing = {
-            isEditing: false,
-            row: null,
-            cell: null,
-            entryKey: null,
-            entryValue: null,
-            isKeyEdit: false,
-            valuePath: [],
-            editingElement: null,
-            originalValue: null
-        };
-    }
-
-    function cancelDirectEdit() {
-        if (!currentEditing.isEditing) return;
-
-        // Cancel any pending save operations - 取消所有待执行的保存操作
-        const editingElements = document.querySelectorAll('.direct-edit-input');
-        editingElements.forEach(input => input.remove());
-
-        currentEditing.isEditing = false;
-
-        // Re-render the row to restore original state WITHOUT saving - 重新渲染该行以恢复原始状态（不保存）
-        const row = currentEditing.row;
-        const entry = allEntries.find(e => e.key === currentEditing.entryKey);
-        if (entry) {
-            const newRow = createEntryRow(entry);
-            row.parentNode.replaceChild(newRow, row);
-        }
-    }
-
-    function buildPathString(keys, depth) {
-        if (!Array.isArray(keys)) {
-            return keys;
-        }
-        // Build path string: use JSON string format - 构建路径字符串：使用 JSON 字符串格式
-        return JSON.stringify(keys);
-    }
-
-    // Build path string helper - 构建路径字符串辅助函数
-    function buildPathString(keys, depth) {
-        if (!Array.isArray(keys)) {
-            return keys;
-        }
-        // Build path string: use JSON string format - 构建路径字符串：使用 JSON 字符串格式
-        return JSON.stringify(keys);
-    }
-
-    // Build path string helper - 构建路径字符串辅助函数
-    function buildPathString(keys, depth) {
-        if (!Array.isArray(keys)) {
-            return keys;
-        }
-        // Build path string: use JSON string format - 构建路径字符串：使用 JSON 字符串格式
-        return JSON.stringify(keys);
     }
 
     // ============================================
@@ -1253,7 +706,11 @@
 
         const ellipsis = document.createElement('span');
         ellipsis.className = 'json-ellipsis';
-        const summaryText = count === 0 ? '' : ` ... ${count} ${isArray ? '项' : '个属性'} `;
+        const summaryText = count === 0
+            ? ''
+            : (isArray
+                ? t('json_summary_items', String(count))
+                : t('json_summary_properties', String(count)));
         setHighlightedText(ellipsis, summaryText);
         firstLine.appendChild(ellipsis);
 
@@ -1506,7 +963,7 @@
                 const parsed = JSON.parse(entry.value);
                 return getValueAtPath(parsed, editTarget.path);
             } catch (e) {
-                showToast('JSON 解析失败，无法编辑该值', 'error');
+                showToast(t('toast_json_parse_edit_failed'), 'error');
             }
         }
     }
@@ -1674,20 +1131,20 @@
         const currentKey = editingState.editTarget.storageKey;
 
         if (!nextKey) {
-            showToast('Key 不能为空', 'warning');
+            showToast(t('toast_key_required'), 'warning');
             restoreEditingStateRow(editingState);
             return;
         }
 
         if (nextKey === currentKey) {
-            showToast('Key 未修改', 'info');
+            showToast(t('toast_key_unchanged'), 'info');
             restoreEditingStateRow(editingState);
             return;
         }
 
         const exists = allEntries.some((entry) => entry.key === nextKey && entry.key !== currentKey);
         if (exists) {
-            showToast('Key 已存在', 'warning');
+            showToast(t('toast_key_exists'), 'warning');
             restoreEditingStateRow(editingState);
             return;
         }
@@ -1704,13 +1161,13 @@
             return;
         }
 
-        showToast('Key 已更新', 'success');
+        showToast(t('toast_key_updated'), 'success');
         await refreshDirectEditState();
     }
 
     async function saveTopLevelValue(editingState, nextValue) {
         if (nextValue === editingState.originalEntryValue) {
-            showToast('Value 未修改', 'info');
+            showToast(t('toast_value_unchanged'), 'info');
             restoreEditingStateRow(editingState);
             return;
         }
@@ -1721,7 +1178,7 @@
             return;
         }
 
-        showToast('Value 已更新', 'success');
+        showToast(t('toast_value_updated'), 'success');
         await refreshDirectEditState();
     }
 
@@ -1731,14 +1188,14 @@
         try {
             parsedRoot = JSON.parse(editingState.originalEntryValue);
         } catch (e) {
-            showToast('JSON 解析失败，无法保存', 'error');
+            showToast(t('toast_json_parse_save_failed'), 'error');
             restoreEditingStateRow(editingState);
             return;
         }
 
         const nextValue = parseEditedValue(rawInput);
         if (areValuesEqual(nextValue, editingState.originalValue)) {
-            showToast('Value 未修改', 'info');
+            showToast(t('toast_value_unchanged'), 'info');
             restoreEditingStateRow(editingState);
             return;
         }
@@ -1751,7 +1208,7 @@
             return;
         }
 
-        showToast('Value 已更新', 'success');
+        showToast(t('toast_value_updated'), 'success');
         await refreshDirectEditState();
     }
 
@@ -1759,13 +1216,13 @@
         const currentKey = editingState.editTarget.keyName;
 
         if (!nextKey) {
-            showToast('Key 不能为空', 'warning');
+            showToast(t('toast_key_required'), 'warning');
             restoreEditingStateRow(editingState);
             return;
         }
 
         if (nextKey === currentKey) {
-            showToast('Key 未修改', 'info');
+            showToast(t('toast_key_unchanged'), 'info');
             restoreEditingStateRow(editingState);
             return;
         }
@@ -1774,20 +1231,20 @@
         try {
             parsedRoot = JSON.parse(editingState.originalEntryValue);
         } catch (e) {
-            showToast('JSON 解析失败，无法保存', 'error');
+            showToast(t('toast_json_parse_save_failed'), 'error');
             restoreEditingStateRow(editingState);
             return;
         }
 
         const parentValue = getValueAtPath(parsedRoot, editingState.editTarget.parentPath || []);
         if (!parentValue || Array.isArray(parentValue) || typeof parentValue !== 'object') {
-            showToast('数组索引不支持重命名', 'warning');
+            showToast(t('toast_array_index_rename_unsupported'), 'warning');
             restoreEditingStateRow(editingState);
             return;
         }
 
         if (Object.prototype.hasOwnProperty.call(parentValue, nextKey)) {
-            showToast('Key 已存在', 'warning');
+            showToast(t('toast_key_exists'), 'warning');
             restoreEditingStateRow(editingState);
             return;
         }
@@ -1805,7 +1262,7 @@
             return;
         }
 
-        showToast('Key 已更新', 'success');
+        showToast(t('toast_key_updated'), 'success');
         await refreshDirectEditState();
     }
 
@@ -1894,9 +1351,12 @@
 
     function updateEntryCount() {
         if (currentSearchTerm) {
-            entryCount.textContent = `${filteredEntries.length} / ${allEntries.length} 项`;
+            entryCount.textContent = t(
+                'panel_entry_count_filtered',
+                [String(filteredEntries.length), String(allEntries.length)]
+            );
         } else {
-            entryCount.textContent = `${allEntries.length} 项`;
+            entryCount.textContent = t('panel_entry_count_total', String(allEntries.length));
         }
     }
 
@@ -1944,7 +1404,7 @@
     // ============================================
     function openAddModal() {
         editingKey = null;
-        modalTitle.textContent = '新增条目';
+        modalTitle.textContent = t('modal_add_title');
         modalKey.value = '';
         modalValue.value = '';
         modalKey.disabled = false;
@@ -1955,7 +1415,7 @@
 
     function openEditModal(key, value) {
         editingKey = key;
-        modalTitle.textContent = '编辑条目';
+        modalTitle.textContent = t('modal_edit_title');
         modalKey.value = key;
         modalKey.disabled = true;
 
@@ -2011,7 +1471,7 @@
         const value = modalValue.value;
 
         if (!key) {
-            showToast('Key 不能为空', 'warning');
+            showToast(t('toast_key_required'), 'warning');
             modalKey.focus();
             return;
         }
@@ -2021,8 +1481,8 @@
             const exists = allEntries.find(e => e.key === key);
             if (exists) {
                 showConfirm(
-                    '覆盖确认',
-                    `Key "${key}" 已存在，是否覆盖其值？`,
+                    t('confirm_overwrite_title'),
+                    t('confirm_overwrite_message', key),
                     async () => {
                         await performSave(key, value);
                     }
@@ -2049,7 +1509,7 @@
         const success = await setLocalStorageItem(key, storeValue);
         if (success) {
             hideModal(modalOverlay);
-            showToast(editingKey === null ? '已添加' : '已保存', 'success');
+            showToast(editingKey === null ? t('toast_added') : t('toast_saved'), 'success');
             lastDataHash = ''; // Force refresh - 强制刷新
             await loadLocalStorage(true);
 
@@ -2081,8 +1541,6 @@
         // Alt+S to save (only works inside modal) - Alt+S 保存（仅在模态框内有效）
         if (e.altKey && !e.ctrlKey && !e.shiftKey && e.key === 's') {
             e.preventDefault();
-            console.log('Alt+S triggered in modalValue, modalOverlay.style.display:', modalOverlay.style.display);
-            console.log('Alt+S triggered in modalValue, saving entry...');
             saveEntry();
         }
 
@@ -2110,7 +1568,6 @@
         // Alt+S to save (only works inside modal) - Alt+S 保存（仅在模态框内有效）
         if (e.altKey && !e.ctrlKey && !e.shiftKey && e.key === 's') {
             e.preventDefault();
-            console.log('Alt+S triggered in modalKey, saving entry...');
             saveEntry();
         }
         if (e.key === 'Enter') {
@@ -2124,12 +1581,12 @@
     // ============================================
     function deleteEntry(key) {
         showConfirm(
-            '删除确认',
-            `确定要删除 "${key}" 吗？此操作不可恢复。`,
+            t('confirm_delete_title'),
+            t('confirm_delete_message', key),
             async () => {
                 const success = await removeLocalStorageItem(key);
                 if (success) {
-                    showToast(`已删除 "${key}"`, 'success');
+                    showToast(t('toast_deleted', key), 'success');
                     lastDataHash = '';
                     await loadLocalStorage(true);
                 }
@@ -2142,16 +1599,16 @@
     // ============================================
     $('#btnClearAll').addEventListener('click', () => {
         if (allEntries.length === 0) {
-            showToast('localStorage 已经是空的', 'info');
+            showToast(t('toast_already_empty'), 'info');
             return;
         }
         showConfirm(
-            '清空确认',
-            `确定要清空所有 ${allEntries.length} 条 localStorage 数据吗？此操作不可恢复。`,
+            t('confirm_clear_title'),
+            t('confirm_clear_message', String(allEntries.length)),
             async () => {
                 const success = await clearAllLocalStorage();
                 if (success) {
-                    showToast('已清空所有数据', 'success');
+                    showToast(t('toast_cleared_all'), 'success');
                     lastDataHash = '';
                     await loadLocalStorage(true);
                 }
@@ -2164,7 +1621,7 @@
     // ============================================
     $('#btnExport').addEventListener('click', async () => {
         if (allEntries.length === 0) {
-            showToast('没有数据可导出', 'warning');
+            showToast(t('toast_no_data_export'), 'warning');
             return;
         }
 
@@ -2194,25 +1651,25 @@
         a.click();
         URL.revokeObjectURL(url);
 
-        showToast(`已导出 ${allEntries.length} 条数据`, 'success');
+        showToast(t('toast_exported', String(allEntries.length)), 'success');
     });
 
     $('#btnImport').addEventListener('click', () => {
         importTextarea.value = '';
         importFileInput.value = '';
         importDropZone.classList.remove('has-file');
-        importDropZone.querySelector('p').innerHTML = '拖拽 JSON 文件到此处<br>或 <button class="btn-link" id="btnSelectFile">选择文件</button>';
+        renderImportDropZoneDefault();
         showModal(importModalOverlay);
 
         // Re-bind the select file button since innerHTML was reset - 由于 innerHTML 被重置，重新绑定选择文件按钮
-        document.getElementById('btnSelectFile').addEventListener('click', () => importFileInput.click());
+        bindImportSelectFileButton();
     });
 
     importCancel.addEventListener('click', () => hideModal(importModalOverlay));
     importModalClose.addEventListener('click', () => hideModal(importModalOverlay));
 
     // File selection - 文件选择
-    btnSelectFile.addEventListener('click', () => importFileInput.click());
+    bindImportSelectFileButton();
 
     importFileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -2243,7 +1700,10 @@
         reader.onload = (e) => {
             importTextarea.value = e.target.result;
             importDropZone.classList.add('has-file');
-            importDropZone.querySelector('p').innerHTML = `已选择: <strong>${escapeHtml(file.name)}</strong> (${formatSize(file.size)})`;
+            importDropZone.querySelector('p').innerHTML = t(
+                'import_selected_file_html',
+                [`<strong>${escapeHtml(file.name)}</strong>`, formatSize(file.size)]
+            );
         };
         reader.readAsText(file);
     }
@@ -2251,7 +1711,7 @@
     importConfirm.addEventListener('click', async () => {
         const text = importTextarea.value.trim();
         if (!text) {
-            showToast('请选择文件或粘贴 JSON 内容', 'warning');
+            showToast(t('toast_select_file_or_paste_json'), 'warning');
             return;
         }
 
@@ -2259,12 +1719,12 @@
         try {
             data = JSON.parse(text);
         } catch (e) {
-            showToast('JSON 格式无效: ' + e.message, 'error');
+            showToast(t('toast_invalid_json', e.message), 'error');
             return;
         }
 
         if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-            showToast('JSON 内容必须是一个对象 (key-value 格式)', 'error');
+            showToast(t('toast_json_must_be_object'), 'error');
             return;
         }
 
@@ -2283,7 +1743,7 @@
         }
 
         hideModal(importModalOverlay);
-        showToast(`已导入 ${count} 条数据`, 'success');
+        showToast(t('toast_imported', String(count)), 'success');
         lastDataHash = '';
         await loadLocalStorage(true);
     });
@@ -2302,7 +1762,7 @@
         } catch (e) { }
 
         navigator.clipboard.writeText(copyText).then(() => {
-            showToast('已复制到剪贴板', 'success');
+            showToast(t('toast_copied'), 'success');
         }).catch(() => {
             // Fallback - 备用方案
             const textarea = document.createElement('textarea');
@@ -2311,7 +1771,7 @@
             textarea.select();
             document.execCommand('copy');
             document.body.removeChild(textarea);
-            showToast('已复制到剪贴板', 'success');
+            showToast(t('toast_copied'), 'success');
         });
     }
 
@@ -2442,11 +1902,11 @@
 
         const textEl = btnThemeToggle.querySelector('.theme-text');
         if (currentTheme === 'dark') {
-            if (textEl) textEl.textContent = '亮色';
-            btnThemeToggle.title = '切换到亮色主题';
+            if (textEl) textEl.textContent = t('theme_label_light');
+            btnThemeToggle.title = t('theme_switch_to_light');
         } else {
-            if (textEl) textEl.textContent = '暗色';
-            btnThemeToggle.title = '切换到暗色主题';
+            if (textEl) textEl.textContent = t('theme_label_dark');
+            btnThemeToggle.title = t('theme_switch_to_dark');
         }
     }
 
@@ -2488,23 +1948,21 @@
     $('#btnRefresh').addEventListener('click', () => {
         lastDataHash = '';
         loadLocalStorage(true);
-        showToast('已刷新', 'info');
+        showToast(t('toast_refreshed'), 'info');
     });
 
     $('#btnAdd').addEventListener('click', openAddModal);
     $('#btnAddFirst').addEventListener('click', openAddModal);
+    if (btnLangToggle) {
+        btnLangToggle.addEventListener('click', () => {
+            toggleLanguage().catch((e) => {
+                console.error('Failed to toggle language:', e);
+            });
+        });
+    }
     if (btnThemeToggle) {
         btnThemeToggle.addEventListener('click', toggleTheme);
     }
-
-    // ============================================
-    // Auto-refresh when panel becomes visible - 面板可见时自动刷新
-    // ============================================
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-            loadLocalStorage(true);
-        }
-    });
 
     // Listen for page navigation - 监听页面导航
     if (chrome.devtools && chrome.devtools.network) {
@@ -2542,12 +2000,12 @@
     function updateLiveToggleButton() {
         if (isLiveEnabled) {
             btnLiveToggle.classList.add('active');
-            btnLiveToggle.querySelector('.live-text').textContent = '实时';
-            btnLiveToggle.title = '实时监控已开启 - 点击关闭';
+            btnLiveToggle.querySelector('.live-text').textContent = t('live_status_live');
+            btnLiveToggle.title = t('live_title_enabled_click_disable');
         } else {
             btnLiveToggle.classList.remove('active');
-            btnLiveToggle.querySelector('.live-text').textContent = '已暂停';
-            btnLiveToggle.title = '实时监控已关闭 - 点击开启';
+            btnLiveToggle.querySelector('.live-text').textContent = t('live_status_paused');
+            btnLiveToggle.title = t('live_title_disabled_click_enable');
         }
     }
 
@@ -2580,11 +2038,15 @@
 
     btnLiveToggle.addEventListener('click', toggleLive);
 
-    // Stop polling when panel is hidden, resume when visible (if enabled) - 面板隐藏时停止轮询，面板可见时恢复 (如果已启用)
+    // Refresh when the panel becomes visible and keep polling in sync with visibility.
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             stopPolling();
-        } else if (isLiveEnabled) {
+            return;
+        }
+
+        loadLocalStorage(true);
+        if (isLiveEnabled) {
             startPolling();
         }
     });
@@ -2592,10 +2054,17 @@
     // ============================================
     // Initialize - 初始化
     // ============================================
-    applyTheme(currentTheme);
-    loadLocalStorage(true);
-    updateLiveToggleButton();
-    if (isLiveEnabled) {
-        startPolling();
+    async function initializePanel() {
+        const savedLocale = getSavedLocalePreference();
+        await setPanelLocale(savedLocale || 'en', false);
+        applyTheme(currentTheme);
+        await loadLocalStorage(true);
+        if (isLiveEnabled) {
+            startPolling();
+        }
     }
+
+    initializePanel().catch((e) => {
+        console.error('Failed to initialize panel:', e);
+    });
 })();

@@ -1,0 +1,287 @@
+{
+  "ext_name": {
+    "message": "LocalStorage 检查器"
+  },
+  "ext_description": {
+    "message": "面向开发者的 localStorage 查看与编辑工具。支持 JSON 树展开、嵌套对象编辑，以及数据导入/导出，方便快速调试。"
+  },
+  "devtools_panel_title": {
+    "message": "LocalStorage 检查器"
+  },
+  "panel_page_title": {
+    "message": "LocalStorage 检查器"
+  },
+  "panel_search_placeholder": {
+    "message": "搜索 key 或 value... (/ 快捷键)"
+  },
+  "panel_clear_search_title": {
+    "message": "清除搜索"
+  },
+  "panel_interaction_hint": {
+    "message": "提示：双击 Key/Value 可快速编辑，双击 JSON 空白区域可打开完整编辑弹窗。"
+  },
+  "table_header_key": {
+    "message": "Key"
+  },
+  "table_header_value": {
+    "message": "Value"
+  },
+  "empty_state_no_data": {
+    "message": "当前页面没有 localStorage 数据"
+  },
+  "empty_state_add_first": {
+    "message": "添加第一条数据"
+  },
+  "empty_state_no_results": {
+    "message": "没有找到匹配条目"
+  },
+  "modal_add_title": {
+    "message": "新增条目"
+  },
+  "modal_edit_title": {
+    "message": "编辑条目"
+  },
+  "modal_key_label": {
+    "message": "Key"
+  },
+  "modal_key_placeholder": {
+    "message": "输入 key 名称"
+  },
+  "modal_value_label": {
+    "message": "Value"
+  },
+  "modal_value_placeholder": {
+    "message": "输入值（支持 JSON，自动格式化）"
+  },
+  "modal_hint_alt_s": {
+    "message": "Alt+S 保存"
+  },
+  "import_modal_title": {
+    "message": "导入 localStorage"
+  },
+  "import_mode_merge": {
+    "message": "合并（保留现有数据，相同 key 会被覆盖）"
+  },
+  "import_mode_replace": {
+    "message": "替换（导入前清空现有数据）"
+  },
+  "import_source_label": {
+    "message": "选择 JSON 文件或粘贴 JSON 内容"
+  },
+  "import_textarea_placeholder": {
+    "message": "或在此粘贴 JSON，格式：{\"key\":\"value\", ...}"
+  },
+  "toolbar_refresh_label": {
+    "message": "刷新"
+  },
+  "toolbar_refresh_title": {
+    "message": "手动刷新"
+  },
+  "toolbar_add_label": {
+    "message": "新增"
+  },
+  "toolbar_add_title": {
+    "message": "新增条目（Alt+N）"
+  },
+  "toolbar_import_label": {
+    "message": "导入"
+  },
+  "toolbar_import_title": {
+    "message": "导入 JSON"
+  },
+  "toolbar_export_label": {
+    "message": "导出"
+  },
+  "toolbar_export_title": {
+    "message": "导出 JSON"
+  },
+  "toolbar_clear_all_label": {
+    "message": "清空"
+  },
+  "toolbar_clear_all_title": {
+    "message": "清空全部 localStorage"
+  },
+  "common_cancel": {
+    "message": "取消"
+  },
+  "common_save": {
+    "message": "保存"
+  },
+  "common_confirm": {
+    "message": "确认"
+  },
+  "common_close": {
+    "message": "关闭"
+  },
+  "common_or": {
+    "message": "或"
+  },
+  "confirm_default_title": {
+    "message": "确认操作"
+  },
+  "action_copy_value": {
+    "message": "复制值"
+  },
+  "action_edit": {
+    "message": "编辑"
+  },
+  "action_delete": {
+    "message": "删除"
+  },
+  "live_status_live": {
+    "message": "实时"
+  },
+  "live_status_paused": {
+    "message": "暂停"
+  },
+  "live_title_enabled_click_disable": {
+    "message": "实时监控已开启，点击关闭"
+  },
+  "live_title_disabled_click_enable": {
+    "message": "实时监控已关闭，点击开启"
+  },
+  "theme_label_light": {
+    "message": "亮色"
+  },
+  "theme_label_dark": {
+    "message": "暗色"
+  },
+  "theme_switch_to_light": {
+    "message": "切换到亮色主题"
+  },
+  "theme_switch_to_dark": {
+    "message": "切换到暗色主题"
+  },
+  "lang_toggle_label_zh": {
+    "message": "ZH"
+  },
+  "lang_toggle_label_en": {
+    "message": "EN"
+  },
+  "lang_toggle_title_switch_to_zh": {
+    "message": "切换到中文"
+  },
+  "lang_toggle_title_switch_to_en": {
+    "message": "切换到英文"
+  },
+  "panel_entry_count_total": {
+    "message": "$1 项"
+  },
+  "panel_entry_count_filtered": {
+    "message": "$1 / $2 项"
+  },
+  "json_summary_items": {
+    "message": " ... $1 项 "
+  },
+  "json_summary_properties": {
+    "message": " ... $1 个属性 "
+  },
+  "confirm_overwrite_title": {
+    "message": "覆盖确认"
+  },
+  "confirm_overwrite_message": {
+    "message": "Key \"$1\" 已存在，是否覆盖其值？"
+  },
+  "confirm_delete_title": {
+    "message": "删除确认"
+  },
+  "confirm_delete_message": {
+    "message": "确定删除 \"$1\" 吗？此操作不可撤销。"
+  },
+  "confirm_clear_title": {
+    "message": "清空确认"
+  },
+  "confirm_clear_message": {
+    "message": "确定清空全部 $1 条 localStorage 数据吗？此操作不可撤销。"
+  },
+  "import_drop_zone_drag_here": {
+    "message": "将 JSON 文件拖到这里"
+  },
+  "import_select_file": {
+    "message": "选择文件"
+  },
+  "import_selected_file_html": {
+    "message": "已选择：$1（$2）"
+  },
+  "toast_load_failed": {
+    "message": "无法读取 localStorage"
+  },
+  "toast_save_failed": {
+    "message": "保存失败：$1"
+  },
+  "toast_remove_failed": {
+    "message": "删除失败：$1"
+  },
+  "toast_clear_failed": {
+    "message": "清空失败：$1"
+  },
+  "toast_json_parse_edit_failed": {
+    "message": "JSON 解析失败，无法编辑该值"
+  },
+  "toast_json_parse_save_failed": {
+    "message": "JSON 解析失败，无法保存"
+  },
+  "toast_array_index_rename_unsupported": {
+    "message": "数组索引不支持重命名"
+  },
+  "toast_key_required": {
+    "message": "Key 不能为空"
+  },
+  "toast_value_required": {
+    "message": "Value 不能为空"
+  },
+  "toast_key_unchanged": {
+    "message": "Key 未修改"
+  },
+  "toast_key_exists": {
+    "message": "Key 已存在"
+  },
+  "toast_key_updated": {
+    "message": "Key 已更新"
+  },
+  "toast_value_unchanged": {
+    "message": "Value 未修改"
+  },
+  "toast_value_updated": {
+    "message": "Value 已更新"
+  },
+  "toast_added": {
+    "message": "已添加"
+  },
+  "toast_saved": {
+    "message": "已保存"
+  },
+  "toast_deleted": {
+    "message": "已删除 \"$1\""
+  },
+  "toast_already_empty": {
+    "message": "localStorage 已经为空"
+  },
+  "toast_cleared_all": {
+    "message": "已清空全部数据"
+  },
+  "toast_no_data_export": {
+    "message": "没有可导出的数据"
+  },
+  "toast_exported": {
+    "message": "已导出 $1 条数据"
+  },
+  "toast_select_file_or_paste_json": {
+    "message": "请选择文件或粘贴 JSON 内容"
+  },
+  "toast_invalid_json": {
+    "message": "JSON 格式无效：$1"
+  },
+  "toast_json_must_be_object": {
+    "message": "JSON 内容必须是对象（key-value 格式）"
+  },
+  "toast_imported": {
+    "message": "已导入 $1 条数据"
+  },
+  "toast_copied": {
+    "message": "已复制到剪贴板"
+  },
+  "toast_refreshed": {
+    "message": "已刷新"
+  }
+}

@@ -1,9 +1,5 @@
-// Create a DevTools panel.
 chrome.devtools.panels.create(
-    'LocalStorage Inspector',
+    chrome.i18n.getMessage('devtools_panel_title') || 'LocalStorage Inspector',
     'icons/icon16.png',
-    'panel/panel.html',
-    function () {
-        // Panel created.
-    }
+    'panel/panel.html'
 );

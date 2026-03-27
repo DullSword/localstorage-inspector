@@ -1,0 +1,287 @@
+{
+  "ext_name": {
+    "message": "LocalStorage Inspector"
+  },
+  "ext_description": {
+    "message": "A powerful localStorage viewer and editor for developers. View JSON as expandable trees, edit nested objects with ease, and import/export data for quick testing."
+  },
+  "devtools_panel_title": {
+    "message": "LocalStorage Inspector"
+  },
+  "panel_page_title": {
+    "message": "LocalStorage Inspector"
+  },
+  "panel_search_placeholder": {
+    "message": "Search key or value... (/ shortcut)"
+  },
+  "panel_clear_search_title": {
+    "message": "Clear search"
+  },
+  "panel_interaction_hint": {
+    "message": "Tip: double-click Key/Value for quick edit. Double-click blank area in JSON to open the full edit modal."
+  },
+  "table_header_key": {
+    "message": "Key"
+  },
+  "table_header_value": {
+    "message": "Value"
+  },
+  "empty_state_no_data": {
+    "message": "No localStorage data on this page"
+  },
+  "empty_state_add_first": {
+    "message": "Add first entry"
+  },
+  "empty_state_no_results": {
+    "message": "No matching entries found"
+  },
+  "modal_add_title": {
+    "message": "Add Entry"
+  },
+  "modal_edit_title": {
+    "message": "Edit Entry"
+  },
+  "modal_key_label": {
+    "message": "Key"
+  },
+  "modal_key_placeholder": {
+    "message": "Enter key name"
+  },
+  "modal_value_label": {
+    "message": "Value"
+  },
+  "modal_value_placeholder": {
+    "message": "Enter value (JSON supported, auto-format)"
+  },
+  "modal_hint_alt_s": {
+    "message": "Alt+S to save"
+  },
+  "import_modal_title": {
+    "message": "Import localStorage"
+  },
+  "import_mode_merge": {
+    "message": "Merge (keep existing data, same key will be overwritten)"
+  },
+  "import_mode_replace": {
+    "message": "Replace (clear existing data before import)"
+  },
+  "import_source_label": {
+    "message": "Choose JSON file or paste JSON content"
+  },
+  "import_textarea_placeholder": {
+    "message": "Or paste JSON here, format: {\"key\":\"value\", ...}"
+  },
+  "toolbar_refresh_label": {
+    "message": "Refresh"
+  },
+  "toolbar_refresh_title": {
+    "message": "Manual refresh"
+  },
+  "toolbar_add_label": {
+    "message": "Add"
+  },
+  "toolbar_add_title": {
+    "message": "Add entry (Alt+N)"
+  },
+  "toolbar_import_label": {
+    "message": "Import"
+  },
+  "toolbar_import_title": {
+    "message": "Import JSON"
+  },
+  "toolbar_export_label": {
+    "message": "Export"
+  },
+  "toolbar_export_title": {
+    "message": "Export JSON"
+  },
+  "toolbar_clear_all_label": {
+    "message": "Clear"
+  },
+  "toolbar_clear_all_title": {
+    "message": "Clear all localStorage"
+  },
+  "common_cancel": {
+    "message": "Cancel"
+  },
+  "common_save": {
+    "message": "Save"
+  },
+  "common_confirm": {
+    "message": "Confirm"
+  },
+  "common_close": {
+    "message": "Close"
+  },
+  "common_or": {
+    "message": "or"
+  },
+  "confirm_default_title": {
+    "message": "Confirm"
+  },
+  "action_copy_value": {
+    "message": "Copy value"
+  },
+  "action_edit": {
+    "message": "Edit"
+  },
+  "action_delete": {
+    "message": "Delete"
+  },
+  "live_status_live": {
+    "message": "Live"
+  },
+  "live_status_paused": {
+    "message": "Paused"
+  },
+  "live_title_enabled_click_disable": {
+    "message": "Live monitoring enabled - click to disable"
+  },
+  "live_title_disabled_click_enable": {
+    "message": "Live monitoring disabled - click to enable"
+  },
+  "theme_label_light": {
+    "message": "Light"
+  },
+  "theme_label_dark": {
+    "message": "Dark"
+  },
+  "theme_switch_to_light": {
+    "message": "Switch to light theme"
+  },
+  "theme_switch_to_dark": {
+    "message": "Switch to dark theme"
+  },
+  "lang_toggle_label_zh": {
+    "message": "中"
+  },
+  "lang_toggle_label_en": {
+    "message": "EN"
+  },
+  "lang_toggle_title_switch_to_zh": {
+    "message": "Switch to Chinese"
+  },
+  "lang_toggle_title_switch_to_en": {
+    "message": "Switch to English"
+  },
+  "panel_entry_count_total": {
+    "message": "$1 items"
+  },
+  "panel_entry_count_filtered": {
+    "message": "$1 / $2 items"
+  },
+  "json_summary_items": {
+    "message": " ... $1 items "
+  },
+  "json_summary_properties": {
+    "message": " ... $1 properties "
+  },
+  "confirm_overwrite_title": {
+    "message": "Overwrite confirmation"
+  },
+  "confirm_overwrite_message": {
+    "message": "Key \"$1\" already exists. Overwrite its value?"
+  },
+  "confirm_delete_title": {
+    "message": "Delete confirmation"
+  },
+  "confirm_delete_message": {
+    "message": "Delete \"$1\"? This action cannot be undone."
+  },
+  "confirm_clear_title": {
+    "message": "Clear confirmation"
+  },
+  "confirm_clear_message": {
+    "message": "Clear all $1 localStorage entries? This action cannot be undone."
+  },
+  "import_drop_zone_drag_here": {
+    "message": "Drop JSON file here"
+  },
+  "import_select_file": {
+    "message": "Choose file"
+  },
+  "import_selected_file_html": {
+    "message": "Selected: $1 ($2)"
+  },
+  "toast_load_failed": {
+    "message": "Unable to read localStorage"
+  },
+  "toast_save_failed": {
+    "message": "Save failed: $1"
+  },
+  "toast_remove_failed": {
+    "message": "Delete failed: $1"
+  },
+  "toast_clear_failed": {
+    "message": "Clear failed: $1"
+  },
+  "toast_json_parse_edit_failed": {
+    "message": "Failed to parse JSON, cannot edit this value"
+  },
+  "toast_json_parse_save_failed": {
+    "message": "Failed to parse JSON, cannot save"
+  },
+  "toast_array_index_rename_unsupported": {
+    "message": "Array indexes cannot be renamed"
+  },
+  "toast_key_required": {
+    "message": "Key cannot be empty"
+  },
+  "toast_value_required": {
+    "message": "Value cannot be empty"
+  },
+  "toast_key_unchanged": {
+    "message": "Key unchanged"
+  },
+  "toast_key_exists": {
+    "message": "Key already exists"
+  },
+  "toast_key_updated": {
+    "message": "Key updated"
+  },
+  "toast_value_unchanged": {
+    "message": "Value unchanged"
+  },
+  "toast_value_updated": {
+    "message": "Value updated"
+  },
+  "toast_added": {
+    "message": "Added"
+  },
+  "toast_saved": {
+    "message": "Saved"
+  },
+  "toast_deleted": {
+    "message": "Deleted \"$1\""
+  },
+  "toast_already_empty": {
+    "message": "localStorage is already empty"
+  },
+  "toast_cleared_all": {
+    "message": "Cleared all data"
+  },
+  "toast_no_data_export": {
+    "message": "No data to export"
+  },
+  "toast_exported": {
+    "message": "Exported $1 entries"
+  },
+  "toast_select_file_or_paste_json": {
+    "message": "Please choose a file or paste JSON content"
+  },
+  "toast_invalid_json": {
+    "message": "Invalid JSON: $1"
+  },
+  "toast_json_must_be_object": {
+    "message": "JSON content must be an object (key-value format)"
+  },
+  "toast_imported": {
+    "message": "Imported $1 entries"
+  },
+  "toast_copied": {
+    "message": "Copied to clipboard"
+  },
+  "toast_refreshed": {
+    "message": "Refreshed"
+  }
+}
