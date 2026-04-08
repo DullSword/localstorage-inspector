@@ -164,6 +164,12 @@
   "lang_toggle_title_switch_to_en": {
     "message": "Switch to English"
   },
+  "key_index_expand_title": {
+    "message": "Expand key index"
+  },
+  "key_index_collapse_title": {
+    "message": "Collapse key index"
+  },
   "panel_entry_count_total": {
     "message": "$1 items"
   },

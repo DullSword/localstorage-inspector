@@ -8,6 +8,7 @@
     const THEME_STORAGE_KEY = 'lsinspector_theme';
     const LIVE_ENABLED_STORAGE_KEY = 'lsinspector_live_enabled';
     const LANGUAGE_STORAGE_KEY = 'lsinspector_lang';
+    const KEY_INDEX_EXPANDED_STORAGE_KEY = 'lsinspector_key_index_expanded';
 
     // ============================================
     // DOM References - DOM 引用
@@ -23,6 +24,9 @@
     const searchBox = searchInput.parentElement;
     const btnLangToggle = $('#btnLangToggle');
     const btnThemeToggle = $('#btnThemeToggle');
+    const mainContent = $('#mainContent');
+    const keyIndexToggle = $('#keyIndexToggle');
+    const keyIndexList = $('#keyIndexList');
 
     // Modal elements - 模态框元素
     const modalOverlay = $('#modalOverlay');
@@ -67,6 +71,8 @@
     let currentTheme = 'dark'; // theme toggle - 主题切换
     let activeLocale = 'en';
     let localeMessages = null;
+    let isKeyIndexExpanded = false;
+    let selectedIndexKey = null;
 
     function isSupportedLocale(locale) {
         return locale === 'en' || locale === 'zh_CN';
@@ -181,6 +187,12 @@
         }
     }
 
+    function updateKeyIndexToggleTitle() {
+        keyIndexToggle.title = isKeyIndexExpanded
+            ? t('key_index_collapse_title')
+            : t('key_index_expand_title');
+    }
+
     function applyLocalizedUI() {
         applyI18n();
         updateModalTitleByState();
@@ -189,6 +201,7 @@
         updateLanguageToggleButton();
         updateThemeToggleButton();
         updateLiveToggleButton();
+        updateKeyIndexToggleTitle();
         applyFilter();
     }
 
@@ -364,8 +377,133 @@
                     entry.value.toLowerCase().includes(term);
             });
         }
+        if (selectedIndexKey && !filteredEntries.some((entry) => entry.key === selectedIndexKey)) {
+            selectedIndexKey = null;
+        }
         renderTable();
+        renderKeyIndex();
         updateEntryCount();
+    }
+
+    function setKeyIndexExpanded(expanded) {
+        isKeyIndexExpanded = Boolean(expanded);
+        mainContent.classList.toggle('key-index-expanded', isKeyIndexExpanded);
+        keyIndexToggle.textContent = isKeyIndexExpanded ? '<<' : '>>';
+        updateKeyIndexToggleTitle();
+        try {
+            localStorage.setItem(KEY_INDEX_EXPANDED_STORAGE_KEY, isKeyIndexExpanded.toString());
+        } catch (e) { }
+    }
+
+    function getKeyIndexFirstChar(key) {
+        if (!key) {
+            return '·';
+        }
+        const trimmedFirstChar = key.trim().charAt(0);
+        if (trimmedFirstChar) {
+            return trimmedFirstChar;
+        }
+        const rawFirstChar = key.charAt(0);
+        if (!rawFirstChar || rawFirstChar === ' ') {
+            return '·';
+        }
+        return rawFirstChar;
+    }
+
+    function setSelectedIndexKey(key) {
+        const nextKey = typeof key === 'string' ? key : null;
+        if (selectedIndexKey === nextKey) {
+            return;
+        }
+        selectedIndexKey = nextKey;
+        updateSelectedIndexItem();
+    }
+
+    function updateSelectedIndexItem() {
+        const previousActive = keyIndexList.querySelector('.key-index-item.active');
+        if (previousActive) {
+            previousActive.classList.remove('active');
+        }
+
+        if (!selectedIndexKey) {
+            return;
+        }
+
+        const nextActive = keyIndexList.querySelector(`.key-index-item[data-key="${CSS.escape(selectedIndexKey)}"]`);
+        if (nextActive) {
+            nextActive.classList.add('active');
+        }
+    }
+
+    function renderKeyIndex() {
+        keyIndexList.innerHTML = '';
+
+        if (filteredEntries.length === 0) {
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        for (const entry of filteredEntries) {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'key-index-item';
+            item.dataset.key = entry.key;
+            item.title = entry.key;
+            if (entry.key === selectedIndexKey) {
+                item.classList.add('active');
+            }
+
+            const shortText = document.createElement('span');
+            shortText.className = 'key-index-item-short';
+            shortText.textContent = getKeyIndexFirstChar(entry.key);
+
+            const fullText = document.createElement('span');
+            fullText.className = 'key-index-item-full';
+            fullText.textContent = entry.key;
+
+            item.append(shortText, fullText);
+            fragment.appendChild(item);
+        }
+
+        keyIndexList.appendChild(fragment);
+    }
+
+    function highlightEntryRow(row) {
+        if (!row) {
+            return;
+        }
+        row.classList.remove('highlight');
+        void row.offsetWidth;
+        row.classList.add('highlight');
+    }
+
+    function scrollToEntryRow(key, scrollOptions = { behavior: 'smooth', block: 'start' }) {
+        if (!key) {
+            return null;
+        }
+        const row = findEntryRow(key);
+        if (!row) {
+            return null;
+        }
+
+        const behavior = scrollOptions && scrollOptions.behavior ? scrollOptions.behavior : 'smooth';
+        const block = scrollOptions && scrollOptions.block ? scrollOptions.block : 'start';
+
+        if (block === 'start') {
+            const maxScrollTop = Math.max(0, tableBody.scrollHeight - tableBody.clientHeight);
+            const tableBodyRect = tableBody.getBoundingClientRect();
+            const rowRect = row.getBoundingClientRect();
+            const rawTargetTop = tableBody.scrollTop + (rowRect.top - tableBodyRect.top);
+            const targetTop = Math.max(0, Math.min(rawTargetTop, maxScrollTop));
+            tableBody.scrollTo({ top: targetTop, behavior: behavior });
+            return row;
+        }
+
+        row.scrollIntoView({
+            behavior: behavior,
+            block: block
+        });
+        return row;
     }
 
     function renderTable() {
@@ -1360,6 +1498,40 @@
         }
     }
 
+    tableBody.addEventListener('click', (e) => {
+        const target = e.target instanceof Element ? e.target : null;
+        if (!target) {
+            return;
+        }
+        const row = target.closest('.entry-row');
+        if (!row || !tableBody.contains(row)) {
+            return;
+        }
+        setSelectedIndexKey(row.dataset.key || null);
+    });
+
+    keyIndexToggle.addEventListener('click', () => {
+        setKeyIndexExpanded(!isKeyIndexExpanded);
+    });
+
+    keyIndexList.addEventListener('click', (e) => {
+        const target = e.target instanceof Element ? e.target : null;
+        if (!target) {
+            return;
+        }
+        const item = target.closest('.key-index-item');
+        if (!item || !keyIndexList.contains(item)) {
+            return;
+        }
+        const key = item.dataset.key;
+        if (!key) {
+            return;
+        }
+        setSelectedIndexKey(key);
+        const targetRow = scrollToEntryRow(key, { behavior: 'smooth', block: 'start' });
+        highlightEntryRow(targetRow);
+    });
+
     // ============================================
     // Search - 搜索
     // ============================================
@@ -1515,11 +1687,9 @@
 
             // Highlight the modified row - 高亮修改的行
             setTimeout(() => {
-                const row = tableBody.querySelector(`.entry-row[data-key="${CSS.escape(key)}"]`);
-                if (row) {
-                    row.classList.add('highlight');
-                    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
+                setSelectedIndexKey(key);
+                const row = scrollToEntryRow(key, { behavior: 'smooth', block: 'nearest' });
+                highlightEntryRow(row);
             }, 50);
         }
     }
@@ -1994,6 +2164,16 @@
         const savedPref = localStorage.getItem(LIVE_ENABLED_STORAGE_KEY);
         if (savedPref !== null) {
             isLiveEnabled = savedPref === 'true';
+        }
+    } catch (e) { }
+
+    try {
+        const savedKeyIndexExpanded = localStorage.getItem(KEY_INDEX_EXPANDED_STORAGE_KEY);
+        if (savedKeyIndexExpanded === 'true') {
+            isKeyIndexExpanded = true;
+            mainContent.classList.add('key-index-expanded');
+            keyIndexToggle.textContent = '<<';
+            updateKeyIndexToggleTitle();
         }
     } catch (e) { }
 

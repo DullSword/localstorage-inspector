@@ -56,6 +56,8 @@
     --toolbar-height: 36px;
     --header-height: 28px;
     --row-height: 28px;
+    --key-index-collapsed-width: 34px;
+    --key-index-expanded-width: 150px;
     --font-size: 12px;
     --font-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
     --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -394,6 +396,106 @@ body {
 .main-content {
     flex: 1;
     overflow: hidden;
+    display: flex;
+    flex-direction: row;
+}
+
+.key-index-column {
+    width: var(--key-index-collapsed-width);
+    min-width: var(--key-index-collapsed-width);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+    transition: width var(--transition-fast), min-width var(--transition-fast);
+}
+
+.main-content.key-index-expanded .key-index-column {
+    width: var(--key-index-expanded-width);
+    min-width: var(--key-index-expanded-width);
+}
+
+.key-index-toggle {
+    height: var(--header-height);
+    min-height: var(--header-height);
+    border: none;
+    border-bottom: 1px solid var(--border-primary);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.key-index-toggle:hover {
+    background: var(--bg-hover);
+    color: var(--text-bright);
+}
+
+.key-index-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.key-index-item {
+    width: 100%;
+    min-height: 24px;
+    border: none;
+    border-bottom: 1px solid var(--border-subtle);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    text-align: left;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.key-index-item:hover {
+    background: var(--bg-hover);
+    color: var(--text-bright);
+}
+
+.key-index-item.active {
+    background: var(--bg-selected);
+    color: var(--text-bright);
+}
+
+.key-index-item-short {
+    display: block;
+    line-height: 1;
+}
+
+.key-index-item-full {
+    display: none;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.main-content.key-index-expanded .key-index-item {
+    justify-content: flex-start;
+}
+
+.main-content.key-index-expanded .key-index-item-short {
+    display: none;
+}
+
+.main-content.key-index-expanded .key-index-item-full {
+    display: block;
+}
+
+.table-panel {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
 }

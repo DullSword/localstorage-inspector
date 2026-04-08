@@ -92,35 +92,43 @@
         Tip: double-click Key/Value for quick edit. Double-click blank area in JSON to open the full edit modal.
     </div>
 
-    <div class="main-content">
-        <div class="table-header">
-            <div class="col-key" data-i18n="table_header_key">Key</div>
-            <div class="col-value" data-i18n="table_header_value">Value</div>
-            <div class="col-actions"></div>
+    <div class="main-content" id="mainContent">
+        <div class="key-index-column" id="keyIndexColumn">
+            <button class="key-index-toggle" id="keyIndexToggle" type="button" aria-label="Toggle key index"
+                title="Toggle key index">&gt;&gt;</button>
+            <div class="key-index-list" id="keyIndexList"></div>
         </div>
 
-        <div class="table-body" id="tableBody"></div>
+        <div class="table-panel">
+            <div class="table-header">
+                <div class="col-key" data-i18n="table_header_key">Key</div>
+                <div class="col-value" data-i18n="table_header_value">Value</div>
+                <div class="col-actions"></div>
+            </div>
 
-        <div class="empty-state" id="emptyState" style="display:none;">
-            <svg viewBox="0 0 64 64" fill="none" width="48" height="48">
-                <rect x="8" y="12" width="48" height="40" rx="4" stroke="currentColor" stroke-width="2" />
-                <path d="M8 24h48" stroke="currentColor" stroke-width="2" />
-                <circle cx="16" cy="18" r="2" fill="currentColor" />
-                <circle cx="24" cy="18" r="2" fill="currentColor" />
-                <circle cx="32" cy="18" r="2" fill="currentColor" />
-                <path d="M24 38h16M28 44h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-            </svg>
-            <p data-i18n="empty_state_no_data">No localStorage data on this page</p>
-            <button class="btn-add-first" id="btnAddFirst" data-i18n="empty_state_add_first">Add first entry</button>
-        </div>
+            <div class="table-body" id="tableBody"></div>
 
-        <div class="empty-state" id="noResultsState" style="display:none;">
-            <svg viewBox="0 0 64 64" fill="none" width="48" height="48">
-                <circle cx="28" cy="28" r="16" stroke="currentColor" stroke-width="2" />
-                <path d="M40 40l12 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-                <path d="M22 28h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-            </svg>
-            <p data-i18n="empty_state_no_results">No matching entries found</p>
+            <div class="empty-state" id="emptyState" style="display:none;">
+                <svg viewBox="0 0 64 64" fill="none" width="48" height="48">
+                    <rect x="8" y="12" width="48" height="40" rx="4" stroke="currentColor" stroke-width="2" />
+                    <path d="M8 24h48" stroke="currentColor" stroke-width="2" />
+                    <circle cx="16" cy="18" r="2" fill="currentColor" />
+                    <circle cx="24" cy="18" r="2" fill="currentColor" />
+                    <circle cx="32" cy="18" r="2" fill="currentColor" />
+                    <path d="M24 38h16M28 44h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <p data-i18n="empty_state_no_data">No localStorage data on this page</p>
+                <button class="btn-add-first" id="btnAddFirst" data-i18n="empty_state_add_first">Add first entry</button>
+            </div>
+
+            <div class="empty-state" id="noResultsState" style="display:none;">
+                <svg viewBox="0 0 64 64" fill="none" width="48" height="48">
+                    <circle cx="28" cy="28" r="16" stroke="currentColor" stroke-width="2" />
+                    <path d="M40 40l12 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                    <path d="M22 28h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <p data-i18n="empty_state_no_results">No matching entries found</p>
+            </div>
         </div>
     </div>
 

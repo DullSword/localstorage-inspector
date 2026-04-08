@@ -164,6 +164,12 @@
   "lang_toggle_title_switch_to_en": {
     "message": "切换到英文"
   },
+  "key_index_expand_title": {
+    "message": "展开键索引"
+  },
+  "key_index_collapse_title": {
+    "message": "收起键索引"
+  },
   "panel_entry_count_total": {
     "message": "$1 项"
   },
