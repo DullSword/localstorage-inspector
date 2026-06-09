@@ -3,7 +3,7 @@
     "message": "LocalStorage Inspector"
   },
   "ext_description": {
-    "message": "A powerful localStorage viewer and editor for developers. View JSON as expandable trees, edit nested objects with ease, and import/export data for quick testing."
+    "message": "A powerful localStorage viewer for developers. View JSON as trees, easily edit nested objects, and import/export data for testing."
   },
   "devtools_panel_title": {
     "message": "LocalStorage Inspector"
