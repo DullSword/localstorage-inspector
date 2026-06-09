@@ -4,11 +4,11 @@
 
 **A Chrome DevTools extension for visualizing and editing `localStorage` data**
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
-[![Version](https://img.shields.io/badge/version-1.0.0-cyan.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.0.0-cyan.svg)](https://github.com/DullSword/localstorage-inspector/releases)
 [![Chrome](https://img.shields.io/badge/Chrome-≥105-4285F4?logo=google-chrome&logoColor=white)]()
 [![Edge](https://img.shields.io/badge/Edge-≥105-0078D7?logo=microsoft-edge&logoColor=white)]()
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/DullSword/localstorage-inspector/pulls)
 
 English · [简体中文](README.md)
 
