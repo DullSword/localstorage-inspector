@@ -33,13 +33,21 @@ English · [简体中文](README.md)
 
 ## 📸 Screenshots
 
-|                 Overview                 |                         Search & Inline Edit                         |
-|:----------------------------------------:|:--------------------------------------------------------------------:|
-| ![overview](screenshots/en/overview.png) | ![search-and-inline-edit](screenshots/en/search-and-inline-edit.png) |
+### Overview
 
-|               Edit KV                |                Import                |
-|:------------------------------------:|:------------------------------------:|
-| ![editKV](screenshots/en/editKV.png) | ![import](screenshots/en/import.png) |
+![overview](screenshots/en/overview.png)
+
+### Search & Inline Edit
+
+![search-and-inline-edit](screenshots/en/search-and-inline-edit.png)
+
+### Edit KV
+
+![editKV](screenshots/en/editKV.png)
+
+### Import
+
+![import](screenshots/en/import.png)
 
 ## 🚀 Installation (Developer Mode)
 

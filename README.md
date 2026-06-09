@@ -33,13 +33,21 @@
 
 ## 📸 截图预览
 
-|                    概览                     |                             搜索与内联编辑                              |
-|:-------------------------------------------:|:-----------------------------------------------------------------------:|
-| ![overview](screenshots/zh_CN/overview.png) | ![search-and-inline-edit](screenshots/zh_CN/search-and-inline-edit.png) |
+### 概览
 
-|                 编辑 KV                 |                  导入                   |
-|:---------------------------------------:|:---------------------------------------:|
-| ![editKV](screenshots/zh_CN/editKV.png) | ![import](screenshots/zh_CN/import.png) |
+![overview](screenshots/zh_CN/overview.png)
+
+### 搜索与内联编辑
+
+![search-and-inline-edit](screenshots/zh_CN/search-and-inline-edit.png)
+
+### 编辑 KV
+
+![editKV](screenshots/zh_CN/editKV.png)
+
+### 导入
+
+![import](screenshots/zh_CN/import.png)
 
 ## 🚀 安装方式（开发模式）
 
