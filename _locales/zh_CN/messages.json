@@ -6,10 +6,10 @@
     "message": "面向开发者的 localStorage 查看与编辑工具。支持 JSON 树展开、嵌套对象编辑，以及数据导入/导出，方便快速调试。"
   },
   "devtools_panel_title": {
-    "message": "LocalStorage 检查器"
+    "message": "LocalStorage Inspector"
   },
   "panel_page_title": {
-    "message": "LocalStorage 检查器"
+    "message": "LocalStorage Inspector"
   },
   "panel_search_placeholder": {
     "message": "搜索 key 或 value... (/ 快捷键)"
