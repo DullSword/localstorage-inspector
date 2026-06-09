@@ -9,8 +9,5 @@
         "128": "icons/icon128.png"
     },
     "devtools_page": "devtools.html",
-    "permissions": [
-        "storage"
-    ],
     "minimum_chrome_version": "105"
 }
